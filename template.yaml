@@ -8,10 +8,11 @@ Globals:
     Runtime: python3.12
     Environment:
       Variables:
-        TABLE_NAME: !Ref ExpensesTable
+        EXPENSES_TABLE: !Ref ExpensesTable
+        BUDGETS_TABLE: !Ref BudgetsTable
 
 Resources:
-  # DynamoDB Table
+  # DynamoDB Tables
   ExpensesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -19,9 +20,39 @@ Resources:
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
+        - AttributeName: budgetItemId
+          AttributeType: S
       KeySchema:
         - AttributeName: id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: BudgetItemIndex
+          KeySchema:
+            - AttributeName: budgetItemId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  BudgetsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: XmasBudgets
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: year
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: YearIndex
+          KeySchema:
+            - AttributeName: year
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       BillingMode: PAY_PER_REQUEST
 
   # Lambda Function
@@ -33,6 +64,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ExpensesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetsTable
       Events:
         GetExpenses:
           Type: Api
@@ -64,6 +97,52 @@ Resources:
           Properties:
             Path: /api/expenses/{id}
             Method: OPTIONS
+        # Budget endpoints
+        GetBudgets:
+          Type: Api
+          Properties:
+            Path: /api/budgets
+            Method: GET
+        CreateBudget:
+          Type: Api
+          Properties:
+            Path: /api/budgets
+            Method: POST
+        GetBudget:
+          Type: Api
+          Properties:
+            Path: /api/budgets/{id}
+            Method: GET
+        UpdateBudget:
+          Type: Api
+          Properties:
+            Path: /api/budgets/{id}
+            Method: PUT
+        DeleteBudget:
+          Type: Api
+          Properties:
+            Path: /api/budgets/{id}
+            Method: DELETE
+        GetBudgetsByYear:
+          Type: Api
+          Properties:
+            Path: /api/budgets/year/{year}
+            Method: GET
+        OptionsBudgets:
+          Type: Api
+          Properties:
+            Path: /api/budgets
+            Method: OPTIONS
+        OptionsBudgetById:
+          Type: Api
+          Properties:
+            Path: /api/budgets/{id}
+            Method: OPTIONS
+        OptionsBudgetsByYear:
+          Type: Api
+          Properties:
+            Path: /api/budgets/year/{year}
+            Method: OPTIONS
 
 Outputs:
   ApiEndpoint:
@@ -71,5 +150,9 @@ Outputs:
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
 
   ExpensesTableName:
-    Description: "DynamoDB table name"
+    Description: "DynamoDB expenses table name"
     Value: !Ref ExpensesTable
+
+  BudgetsTableName:
+    Description: "DynamoDB budgets table name"
+    Value: !Ref BudgetsTable
