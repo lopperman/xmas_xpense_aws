@@ -94,6 +94,16 @@ function BudgetConfig({ apiUrl }) {
     return acc
   }, {})
 
+  // Sort budgets within each year by name asc, then type asc
+  Object.keys(groupedBudgets).forEach(year => {
+    groupedBudgets[year].sort((a, b) => {
+      if (a.name !== b.name) {
+        return a.name.localeCompare(b.name)
+      }
+      return a.expenseType.localeCompare(b.expenseType)
+    })
+  })
+
   return (
     <div className="budget-config">
       <h2>Budget Configuration</h2>

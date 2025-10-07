@@ -100,7 +100,15 @@ function Dashboard({ apiUrl, selectedYear, onYearChange }) {
   // Calculate total spent for each budget item
   const getBudgetSummary = () => {
     const filtered = getFilteredBudgets()
-    return filtered.map(budget => {
+    return filtered
+      .sort((a, b) => {
+        // Sort by name asc, then type asc
+        if (a.name !== b.name) {
+          return a.name.localeCompare(b.name)
+        }
+        return a.expenseType.localeCompare(b.expenseType)
+      })
+      .map(budget => {
       const budgetExpenses = expenses.filter(exp => exp.budgetItemId === budget.id)
       const totalSpent = budgetExpenses.reduce((sum, exp) => sum + exp.amount, 0)
       const remaining = budget.budgetAmount - totalSpent

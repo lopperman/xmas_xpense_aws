@@ -263,7 +263,16 @@ function Expenses({ apiUrl, selectedYear }) {
               </div>
             ) : (
               filteredExpenses
-                .sort((a, b) => new Date(b.expenseDate) - new Date(a.expenseDate))
+                .sort((a, b) => {
+                  const budgetA = getBudgetInfo(a.budgetItemId)
+                  const budgetB = getBudgetInfo(b.budgetItemId)
+
+                  // Sort by budget name asc, then type asc
+                  if (budgetA.name !== budgetB.name) {
+                    return budgetA.name.localeCompare(budgetB.name)
+                  }
+                  return budgetA.type.localeCompare(budgetB.type)
+                })
                 .map((expense) => {
                   const budgetInfo = getBudgetInfo(expense.budgetItemId)
                   return (
