@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Xmas Xpenses - Holiday expense tracking application
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: python3.11
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref ExpensesTable
+
+Resources:
+  # DynamoDB Table
+  ExpensesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: XmasExpenses
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # Lambda Function
+  ExpenseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: lambda_handler.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpensesTable
+      Events:
+        GetExpenses:
+          Type: Api
+          Properties:
+            Path: /api/expenses
+            Method: GET
+        CreateExpense:
+          Type: Api
+          Properties:
+            Path: /api/expenses
+            Method: POST
+        DeleteExpense:
+          Type: Api
+          Properties:
+            Path: /api/expenses/{id}
+            Method: DELETE
+        HealthCheck:
+          Type: Api
+          Properties:
+            Path: /api/health
+            Method: GET
+        OptionsExpenses:
+          Type: Api
+          Properties:
+            Path: /api/expenses
+            Method: OPTIONS
+        OptionsExpenseById:
+          Type: Api
+          Properties:
+            Path: /api/expenses/{id}
+            Method: OPTIONS
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  ExpensesTableName:
+    Description: "DynamoDB table name"
+    Value: !Ref ExpensesTable
