@@ -5,7 +5,7 @@ Description: Xmas Xpenses - Holiday expense tracking application
 Globals:
   Function:
     Timeout: 10
-    Runtime: python3.11
+    Runtime: python3.12
     Environment:
       Variables:
         TABLE_NAME: !Ref ExpensesTable
