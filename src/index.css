@@ -84,28 +84,37 @@ h3 {
 
 /* Dashboard */
 .dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 25px;
 }
 
-.year-selector {
+.dashboard-header h2 {
+  margin-bottom: 15px;
+}
+
+.filters {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.year-selector label {
+.filter-group label {
   font-weight: 600;
   color: #555;
+  font-size: 14px;
 }
 
-.year-selector select {
+.filter-group select {
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
+  min-width: 120px;
 }
 
 .summary-cards {
@@ -400,6 +409,14 @@ h3 {
 }
 
 /* Expenses */
+.expenses-header {
+  margin-bottom: 25px;
+}
+
+.expenses-header h2 {
+  margin-bottom: 15px;
+}
+
 .expenses-list {
   margin-top: 20px;
 }

@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 function Expenses({ apiUrl, selectedYear }) {
   const [expenses, setExpenses] = useState([])
   const [budgets, setBudgets] = useState([])
+  const [selectedBudgetName, setSelectedBudgetName] = useState('')
+  const [selectedBudgetType, setSelectedBudgetType] = useState('')
   const [formData, setFormData] = useState({
     budgetItemId: '',
     expenseDate: new Date().toISOString().split('T')[0],
@@ -14,6 +16,12 @@ function Expenses({ apiUrl, selectedYear }) {
     if (selectedYear) {
       fetchBudgetsAndExpenses()
     }
+  }, [selectedYear])
+
+  // Reset filters when year changes
+  useEffect(() => {
+    setSelectedBudgetName('')
+    setSelectedBudgetType('')
   }, [selectedYear])
 
   const fetchBudgetsAndExpenses = async () => {
@@ -98,11 +106,86 @@ function Expenses({ apiUrl, selectedYear }) {
     }
   }
 
+  // Get budget name options (filtered by type if selected)
+  const getBudgetNameOptions = () => {
+    let options = budgets
+    if (selectedBudgetType) {
+      options = options.filter(b => b.expenseType === selectedBudgetType)
+    }
+    return [...new Set(options.map(b => b.name))].sort()
+  }
+
+  // Get budget type options (filtered by name if selected)
+  const getBudgetTypeOptions = () => {
+    let options = budgets
+    if (selectedBudgetName) {
+      options = options.filter(b => b.name === selectedBudgetName)
+    }
+    return [...new Set(options.map(b => b.expenseType))].sort()
+  }
+
+  // Filter expenses based on selected filters
+  const getFilteredExpenses = () => {
+    let filtered = [...expenses]
+
+    if (selectedBudgetName || selectedBudgetType) {
+      // Get budget IDs that match the filters
+      let filteredBudgets = budgets
+
+      if (selectedBudgetName) {
+        filteredBudgets = filteredBudgets.filter(b => b.name === selectedBudgetName)
+      }
+
+      if (selectedBudgetType) {
+        filteredBudgets = filteredBudgets.filter(b => b.expenseType === selectedBudgetType)
+      }
+
+      const budgetIds = filteredBudgets.map(b => b.id)
+      filtered = filtered.filter(exp => budgetIds.includes(exp.budgetItemId))
+    }
+
+    return filtered
+  }
+
   const selectedBudgetInfo = formData.budgetItemId ? getBudgetInfo(formData.budgetItemId) : null
+  const filteredExpenses = getFilteredExpenses()
+  const budgetNameOptions = getBudgetNameOptions()
+  const budgetTypeOptions = getBudgetTypeOptions()
 
   return (
     <div className="expenses">
-      <h2>Expenses for {selectedYear}</h2>
+      <div className="expenses-header">
+        <h2>Expenses for {selectedYear}</h2>
+        {budgets.length > 0 && (
+          <div className="filters">
+            <div className="filter-group">
+              <label>Budget Name:</label>
+              <select
+                value={selectedBudgetName}
+                onChange={(e) => setSelectedBudgetName(e.target.value)}
+              >
+                <option value="">All</option>
+                {budgetNameOptions.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label>Budget Type:</label>
+              <select
+                value={selectedBudgetType}
+                onChange={(e) => setSelectedBudgetType(e.target.value)}
+              >
+                <option value="">All</option>
+                {budgetTypeOptions.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
 
       {budgets.length === 0 ? (
         <div className="empty-state">
@@ -172,12 +255,14 @@ function Expenses({ apiUrl, selectedYear }) {
           </form>
 
           <div className="expenses-list">
-            {expenses.length === 0 ? (
+            {filteredExpenses.length === 0 ? (
               <div className="empty-state">
-                No expenses yet for {selectedYear}. Add your first expense above!
+                {expenses.length === 0
+                  ? `No expenses yet for ${selectedYear}. Add your first expense above!`
+                  : 'No expenses match the selected filters.'}
               </div>
             ) : (
-              expenses
+              filteredExpenses
                 .sort((a, b) => new Date(b.expenseDate) - new Date(a.expenseDate))
                 .map((expense) => {
                   const budgetInfo = getBudgetInfo(expense.budgetItemId)

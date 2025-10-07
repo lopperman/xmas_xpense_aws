@@ -4,11 +4,19 @@ function Dashboard({ apiUrl, selectedYear, onYearChange }) {
   const [budgets, setBudgets] = useState([])
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedBudgetName, setSelectedBudgetName] = useState('')
+  const [selectedBudgetType, setSelectedBudgetType] = useState('')
 
   useEffect(() => {
     if (selectedYear) {
       fetchData()
     }
+  }, [selectedYear])
+
+  // Reset filters when year changes
+  useEffect(() => {
+    setSelectedBudgetName('')
+    setSelectedBudgetType('')
   }, [selectedYear])
 
   const fetchData = async () => {
@@ -30,29 +38,6 @@ function Dashboard({ apiUrl, selectedYear, onYearChange }) {
       setLoading(false)
     }
   }
-
-  // Calculate total spent for each budget item
-  const getBudgetSummary = () => {
-    return budgets.map(budget => {
-      const budgetExpenses = expenses.filter(exp => exp.budgetItemId === budget.id)
-      const totalSpent = budgetExpenses.reduce((sum, exp) => sum + exp.amount, 0)
-      const remaining = budget.budgetAmount - totalSpent
-      const percentUsed = (totalSpent / budget.budgetAmount) * 100
-
-      return {
-        ...budget,
-        totalSpent,
-        remaining,
-        percentUsed,
-        expenseCount: budgetExpenses.length
-      }
-    })
-  }
-
-  const budgetSummary = getBudgetSummary()
-  const totalBudget = budgetSummary.reduce((sum, b) => sum + b.budgetAmount, 0)
-  const totalSpent = budgetSummary.reduce((sum, b) => sum + b.totalSpent, 0)
-  const totalRemaining = totalBudget - totalSpent
 
   // Get available years from budgets
   const [availableYears, setAvailableYears] = useState([])
@@ -79,6 +64,66 @@ function Dashboard({ apiUrl, selectedYear, onYearChange }) {
     fetchAllBudgets()
   }, [])
 
+  // Filter budgets based on selected filters
+  const getFilteredBudgets = () => {
+    let filtered = [...budgets]
+
+    if (selectedBudgetName) {
+      filtered = filtered.filter(b => b.name === selectedBudgetName)
+    }
+
+    if (selectedBudgetType) {
+      filtered = filtered.filter(b => b.expenseType === selectedBudgetType)
+    }
+
+    return filtered
+  }
+
+  // Get budget name options (filtered by type if selected)
+  const getBudgetNameOptions = () => {
+    let options = budgets
+    if (selectedBudgetType) {
+      options = options.filter(b => b.expenseType === selectedBudgetType)
+    }
+    return [...new Set(options.map(b => b.name))].sort()
+  }
+
+  // Get budget type options (filtered by name if selected)
+  const getBudgetTypeOptions = () => {
+    let options = budgets
+    if (selectedBudgetName) {
+      options = options.filter(b => b.name === selectedBudgetName)
+    }
+    return [...new Set(options.map(b => b.expenseType))].sort()
+  }
+
+  // Calculate total spent for each budget item
+  const getBudgetSummary = () => {
+    const filtered = getFilteredBudgets()
+    return filtered.map(budget => {
+      const budgetExpenses = expenses.filter(exp => exp.budgetItemId === budget.id)
+      const totalSpent = budgetExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+      const remaining = budget.budgetAmount - totalSpent
+      const percentUsed = (totalSpent / budget.budgetAmount) * 100
+
+      return {
+        ...budget,
+        totalSpent,
+        remaining,
+        percentUsed,
+        expenseCount: budgetExpenses.length
+      }
+    })
+  }
+
+  const budgetSummary = getBudgetSummary()
+  const totalBudget = budgetSummary.reduce((sum, b) => sum + b.budgetAmount, 0)
+  const totalSpent = budgetSummary.reduce((sum, b) => sum + b.totalSpent, 0)
+  const totalRemaining = totalBudget - totalSpent
+
+  const budgetNameOptions = getBudgetNameOptions()
+  const budgetTypeOptions = getBudgetTypeOptions()
+
   if (loading) {
     return <div className="dashboard loading">Loading...</div>
   }
@@ -87,23 +132,57 @@ function Dashboard({ apiUrl, selectedYear, onYearChange }) {
     <div className="dashboard">
       <div className="dashboard-header">
         <h2>Dashboard</h2>
-        <div className="year-selector">
-          <label>Year:</label>
-          <select
-            value={selectedYear || ''}
-            onChange={(e) => onYearChange(parseInt(e.target.value))}
-          >
-            {availableYears.length === 0 && <option value="">No budgets yet</option>}
-            {availableYears.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+        <div className="filters">
+          <div className="filter-group">
+            <label>Year:</label>
+            <select
+              value={selectedYear || ''}
+              onChange={(e) => onYearChange(parseInt(e.target.value))}
+            >
+              {availableYears.length === 0 && <option value="">No budgets yet</option>}
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          {budgets.length > 0 && (
+            <>
+              <div className="filter-group">
+                <label>Budget Name:</label>
+                <select
+                  value={selectedBudgetName}
+                  onChange={(e) => setSelectedBudgetName(e.target.value)}
+                >
+                  <option value="">All</option>
+                  {budgetNameOptions.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Budget Type:</label>
+                <select
+                  value={selectedBudgetType}
+                  onChange={(e) => setSelectedBudgetType(e.target.value)}
+                >
+                  <option value="">All</option>
+                  {budgetTypeOptions.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {budgetSummary.length === 0 ? (
         <div className="empty-state">
-          No budgets for {selectedYear}. Go to Budget Config to add some!
+          {budgets.length === 0
+            ? `No budgets for ${selectedYear}. Go to Budget Config to add some!`
+            : 'No budgets match the selected filters.'}
         </div>
       ) : (
         <>
